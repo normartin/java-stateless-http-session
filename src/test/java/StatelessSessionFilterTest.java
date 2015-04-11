@@ -1,9 +1,7 @@
 import com.ctlok.web.session.StatelessSessionFilter;
 import org.easymock.Capture;
 import org.easymock.CaptureType;
-import org.easymock.EasyMock;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.servlet.FilterChain;
@@ -216,7 +214,6 @@ public class StatelessSessionFilterTest {
     }
 
     @Test
-    @Ignore // TODO implement it
     public void invalidateRemovesAllAttributes() throws ServletException, IOException {
 
         expect(request.getCookies()).andReturn(new Cookie[]{}).anyTimes();

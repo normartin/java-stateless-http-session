@@ -248,6 +248,7 @@ public class StatelessSession implements HttpSession {
 
     @Override
     public void invalidate() {
+        attributes.clear();
         final Cookie cookie = this.createCookie();
         cookie.setMaxAge(0);
         this.config.getResponse().addCookie(cookie);
