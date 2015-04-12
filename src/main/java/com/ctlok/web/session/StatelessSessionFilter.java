@@ -96,12 +96,13 @@ public class StatelessSessionFilter implements Filter {
 
         final HttpServletRequest request = (HttpServletRequest) req;
         final HttpServletResponse response = (HttpServletResponse) resp;
-        
-        final StatelessSessionConfig sessionConfig = createStatelessSessionConfig(request, response);
+
+        final DelayingCookieResponseWrapper responseWrapper = new DelayingCookieResponseWrapper(response, this.sessionName);
+
+        final StatelessSessionConfig sessionConfig = createStatelessSessionConfig(request, responseWrapper);
         final HttpServletRequest requestWrapper = new RequestWrapper(request, sessionConfig);
 
-        chain.doFilter(requestWrapper, response);
-        
+        chain.doFilter(requestWrapper, responseWrapper);
     }
     
     protected StatelessSessionConfig createStatelessSessionConfig(

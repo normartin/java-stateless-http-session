@@ -1,6 +1,7 @@
 import com.ctlok.web.session.StatelessSessionFilter;
 import org.easymock.Capture;
 import org.easymock.CaptureType;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -13,7 +14,6 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.easymock.EasyMock.*;
@@ -26,7 +26,7 @@ public class StatelessSessionFilterTest {
     private HttpServletResponse response;
 
     @Before
-    public void before() throws ServletException {
+    public void before() throws Exception {
 
         chain = new CapturingFilterChain();
 
@@ -39,6 +39,10 @@ public class StatelessSessionFilterTest {
 
         request = createMock(HttpServletRequest.class);
         response = createMock(HttpServletResponse.class);
+        response.flushBuffer();
+
+        EasyMock.expectLastCall().anyTimes();
+        expect(response.isCommitted()).andReturn(false).anyTimes();
     }
 
     @Test
@@ -82,11 +86,10 @@ public class StatelessSessionFilterTest {
 
         wrappedRequest.getSession().setAttribute("1", "2");
 
+        chain.flushResponse();
         verify(response);
         verify(request);
 
-
-        System.out.println("--- " + capture.getValue().getValue());
     }
 
     @Test
@@ -160,12 +163,12 @@ public class StatelessSessionFilterTest {
     }
 
     @Test
-    public void multipleMutatingCallsToSessionGenerateACorrespondingNumberOfSetCookieHeaders() throws ServletException, IOException {
+    public void multipleMutatingCallsToSessionResultsInOneCallToAddCookie() throws ServletException, IOException {
 
         expect(request.getCookies()).andReturn(new Cookie[]{}).anyTimes();
 
         response.addCookie(anyObject(Cookie.class));
-        expectLastCall().times(3);
+        expectLastCall().times(1);
 
         replay(request);
         replay(response);
@@ -178,8 +181,10 @@ public class StatelessSessionFilterTest {
         wrappedRequest.getSession().setAttribute("1", "2");
         wrappedRequest.getSession().setAttribute("1", "2");
 
+        chain.flushResponse();
         verify(response);
         verify(request);
+
     }
 
     @Test
@@ -190,7 +195,7 @@ public class StatelessSessionFilterTest {
         Capture<Cookie> cookieCapture = Capture.newInstance(CaptureType.LAST);
 
         response.addCookie(capture(cookieCapture));
-        expectLastCall().times(2);
+        expectLastCall().times(1);
 
         replay(request);
         replay(response);
@@ -205,6 +210,7 @@ public class StatelessSessionFilterTest {
         wrappedRequest.getSession().setAttribute("1", content);
         wrappedRequest.getSession().invalidate();
 
+        chain.flushResponse();
         verify(response);
         verify(request);
 
@@ -218,10 +224,10 @@ public class StatelessSessionFilterTest {
 
         expect(request.getCookies()).andReturn(new Cookie[]{}).anyTimes();
 
-        Capture<Cookie> cookieCapture = Capture.newInstance(CaptureType.ALL);
+        Capture<Cookie> cookieCapture = Capture.newInstance();
 
         response.addCookie(capture(cookieCapture));
-        expectLastCall().times(2);
+        expectLastCall().times(1);
 
         replay(request);
         replay(response);
@@ -236,33 +242,37 @@ public class StatelessSessionFilterTest {
         wrappedRequest.getSession().setAttribute("1", content);
         wrappedRequest.getSession().invalidate();
 
+        chain.flushResponse();
         verify(response);
         verify(request);
 
-        final List<Cookie> cookies = cookieCapture.getValues();
-        assertThat(cookies).hasSize(2);
-
-        final Cookie firstCookie = cookies.get(0);
-        assertThat(firstCookie.getValue()).contains(content);
-        assertThat(firstCookie.getMaxAge()).isEqualTo(-1);
-
-        final Cookie secondCookie = cookies.get(1);
-        assertThat(secondCookie.getValue()).doesNotContain(content);
-        assertThat(secondCookie.getMaxAge()).isEqualTo(0);
+        final Cookie cookie =cookieCapture.getValue();
+        assertThat(cookie.getValue()).doesNotContain(content);
+        assertThat(cookie.getMaxAge()).isEqualTo(0);
     }
 
 
     private final static class CapturingFilterChain implements FilterChain {
 
         private ServletRequest servletRequest;
+        private ServletResponse servletResponse;
 
         @Override
         public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) throws IOException, ServletException {
             this.servletRequest = servletRequest;
+            this.servletResponse = servletResponse;
         }
 
         public HttpServletRequest getRequest() {
             return (HttpServletRequest) servletRequest;
+        }
+
+        public void flushResponse(){
+            try {
+                servletResponse.flushBuffer();
+            } catch (IOException e) {
+                throw new RuntimeException();
+            }
         }
     }
 
