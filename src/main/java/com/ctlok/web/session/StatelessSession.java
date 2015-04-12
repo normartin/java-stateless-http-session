@@ -78,10 +78,11 @@ public class StatelessSession implements HttpSession {
     
     protected Cookie findSessionCookie(){
         Cookie sessionCookie = null;
+
+        final Cookie[] cookies = this.config.getRequest().getCookies();
+        if (cookies != null){
         
-        if (this.config.getRequest().getCookies() != null){
-        
-            for (final Cookie cookie: this.config.getRequest().getCookies()){
+            for (final Cookie cookie: cookies){
                 if (this.config.getSessionName().equals(cookie.getName())){
                     sessionCookie = cookie;
                 }
