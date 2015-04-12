@@ -183,10 +183,11 @@ public class StatelessSessionFilter implements Filter {
         
         private boolean isSessionCookieExist(final String sessionName){
             boolean result = false;
+
+            final Cookie[] cookies = request.getCookies();
+            if (cookies != null){
             
-            if (request.getCookies() != null){
-            
-                for (final Cookie cookie: request.getCookies()){
+                for (final Cookie cookie: cookies){
                     if (cookie.getName().equals(sessionName)){
                         result = true;
                         break;

@@ -46,7 +46,7 @@ public class StatelessSessionFilterTest {
     }
 
     @Test
-    // TODO: why expect(request.getCookies()).andReturn(null).times(2);
+    // TODO is this behaviour ok?
     public void getSessionDoesNotCreateSessionCookieWithEmptySession() throws ServletException, IOException {
 
         expect(request.getCookies()).andReturn(null).times(2);
@@ -57,6 +57,8 @@ public class StatelessSessionFilterTest {
         filter.doFilter(request, response, chain);
 
         final HttpServletRequest wrappedRequest = chain.getRequest();
+
+        // creates a session
         assertThat(wrappedRequest.getSession()).isNotNull();
 
         // addCookie has not been called
@@ -66,9 +68,9 @@ public class StatelessSessionFilterTest {
 
 
     @Test
-    public void getSessionCreatesSessionCookieWithNoneEmpty() throws ServletException, IOException {
+    public void getSessionCreatesSessionCookieWithNoneEmptySession() throws ServletException, IOException {
 
-        expect(request.getCookies()).andReturn(null).anyTimes();
+        expect(request.getCookies()).andReturn(null).times(2);
 
         Capture<Cookie> capture = Capture.newInstance();
         response.addCookie(capture(capture));
@@ -97,7 +99,7 @@ public class StatelessSessionFilterTest {
 
         final Cookie validCookie = new Cookie("SESSION", "{\"1\":\"2\",\"__ct\":\"1428745523130\",\"__id\":\"4o79716jvg9k3b80v4rfbgvag8\",\"__s\":\"aa369e7e2fc7ced78b3143af1439527172d4c80b\"}");
 
-        expect(request.getCookies()).andReturn(new Cookie[]{validCookie}).anyTimes();
+        expect(request.getCookies()).andReturn(new Cookie[]{validCookie}).times(2);
 
         replay(request);
         replay(response);
@@ -111,7 +113,6 @@ public class StatelessSessionFilterTest {
 
         verify(response);
         verify(request);
-
     }
 
     @Test
